@@ -231,8 +231,11 @@
   }
 
   // ----------------------------------------------------
-  // Render Pattern Catalog
+  // Render Pattern Catalog (Lazy-Loaded & Background Cached)
   // ----------------------------------------------------
+  let thumbObserver = null;
+  let idlePreloadHandle = null;
+
   function renderPatternCatalog() {
     const grid = $("patternGrid");
     const filtered = filterGenerators();
@@ -245,17 +248,22 @@
       return;
     }
 
+    if (thumbObserver) {
+      thumbObserver.disconnect();
+    }
+
     let html = "";
     for (const gen of filtered) {
       const isFav = state.favorites.has(gen.id);
       const isActive = state.current && state.current.id === gen.id;
+      const cached = thumbCache.get(gen.id);
       html += `
         <div class="pattern-card ${isActive ? 'active' : ''}" data-id="${gen.id}">
           <button class="card-fav-btn ${isFav ? 'is-fav' : ''}" data-favid="${gen.id}" title="${isFav ? 'Remove favorite' : 'Add to favorites'}">
             ★
           </button>
-          <div class="card-thumb">
-            ${getMiniThumbnailSvg(gen)}
+          <div class="card-thumb" data-thumb-id="${gen.id}">
+            ${cached || '<div class="thumb-skeleton"></div>'}
           </div>
           <div class="card-info">
             <span class="card-name">${gen.name}</span>
@@ -265,6 +273,83 @@
       `;
     }
     grid.innerHTML = html;
+
+    setupThumbnailObserver();
+    scheduleBackgroundThumbnails(filtered);
+  }
+
+  function setupThumbnailObserver() {
+    if (!("IntersectionObserver" in window)) {
+      $$(".card-thumb[data-thumb-id]").forEach(el => {
+        const id = el.dataset.thumbId;
+        const gen = window.PATTERNS.find(p => p.id === id);
+        if (gen && !thumbCache.has(id)) {
+          el.innerHTML = getMiniThumbnailSvg(gen);
+        }
+      });
+      return;
+    }
+
+    thumbObserver = new IntersectionObserver((entries, observer) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          const id = el.dataset.thumbId;
+          observer.unobserve(el);
+          const gen = window.PATTERNS.find(p => p.id === id);
+          if (gen) {
+            el.innerHTML = getMiniThumbnailSvg(gen);
+          }
+        }
+      }
+    }, {
+      root: $("patternDrawer"),
+      rootMargin: "150px 0px"
+    });
+
+    const pending = $$(".card-thumb[data-thumb-id]");
+    for (const el of pending) {
+      const id = el.dataset.thumbId;
+      if (!thumbCache.has(id)) {
+        thumbObserver.observe(el);
+      }
+    }
+  }
+
+  function scheduleBackgroundThumbnails(list) {
+    if (idlePreloadHandle) {
+      if (window.cancelIdleCallback) cancelIdleCallback(idlePreloadHandle);
+      else clearTimeout(idlePreloadHandle);
+    }
+    const uncached = list.filter(g => !thumbCache.has(g.id));
+    if (uncached.length === 0) return;
+
+    let index = 0;
+    function processBatch(deadline) {
+      while (index < uncached.length && ((deadline && deadline.timeRemaining() > 5) || !deadline)) {
+        const gen = uncached[index++];
+        const svg = getMiniThumbnailSvg(gen);
+        const el = document.querySelector(`.card-thumb[data-thumb-id="${gen.id}"]`);
+        if (el && el.querySelector(".thumb-skeleton")) {
+          el.innerHTML = svg;
+          if (thumbObserver) thumbObserver.unobserve(el);
+        }
+        if (!deadline && index % 4 === 0) break;
+      }
+      if (index < uncached.length) {
+        if (window.requestIdleCallback) {
+          idlePreloadHandle = requestIdleCallback(processBatch);
+        } else {
+          idlePreloadHandle = setTimeout(() => processBatch(null), 30);
+        }
+      }
+    }
+
+    if (window.requestIdleCallback) {
+      idlePreloadHandle = requestIdleCallback(processBatch);
+    } else {
+      idlePreloadHandle = setTimeout(() => processBatch(null), 60);
+    }
   }
 
   // ----------------------------------------------------
@@ -844,9 +929,33 @@
   }
 
   // ----------------------------------------------------
-  // Canvas Rendering & Layout
+  // Canvas Rendering & Layout (RAF Coalesced)
   // ----------------------------------------------------
-  function refreshCanvas(autoFit = false) {
+  let rafRefreshId = null;
+  let pendingAutoFit = false;
+
+  function refreshCanvas(autoFit = false, immediate = false) {
+    if (autoFit) pendingAutoFit = true;
+    if (immediate) {
+      if (rafRefreshId) {
+        cancelAnimationFrame(rafRefreshId);
+        rafRefreshId = null;
+      }
+      doRefreshCanvas(pendingAutoFit);
+      pendingAutoFit = false;
+      return;
+    }
+    if (rafRefreshId) return;
+    rafRefreshId = requestAnimationFrame(() => {
+      rafRefreshId = null;
+      const fit = pendingAutoFit;
+      pendingAutoFit = false;
+      doRefreshCanvas(fit);
+    });
+  }
+
+  let lastPrintKey = "";
+  function doRefreshCanvas(autoFit = false) {
     if (!state.current) return;
 
     // Build raw parameters object for PaperEngine
@@ -900,8 +1009,12 @@
     paperSvg.setAttribute("viewBox", `0 0 ${p.width} ${p.height}`);
     paperSvg.innerHTML = PaperEngine.dlToSvgBody(p, canvasDl);
 
-    // Keep dynamic print stylesheet in sync with page dimensions
-    updatePrintStyles(p, state);
+    // Keep dynamic print stylesheet in sync with page dimensions (only when dimensions change)
+    const printKey = `${state.pageSize}_${state.orientation}_${state.width}_${state.height}_${state.unit}`;
+    if (printKey !== lastPrintKey) {
+      lastPrintKey = printKey;
+      updatePrintStyles(p, state);
+    }
 
     // Update sheet dimensions & background
     const sheet = $("paperSheet");
@@ -1199,11 +1312,16 @@
       renderPatternCatalog();
     });
 
-    // Pattern search input
+    // Pattern search input (Debounced for silky typing)
     const searchInput = $("patternSearch");
+    let searchDebounceTimer = null;
     searchInput.addEventListener("input", (e) => {
-      state.searchQuery = e.target.value.trim();
-      renderPatternCatalog();
+      clearTimeout(searchDebounceTimer);
+      const val = e.target.value.trim();
+      searchDebounceTimer = setTimeout(() => {
+        state.searchQuery = val;
+        renderPatternCatalog();
+      }, 120);
     });
 
     // Keyboard shortcuts
@@ -1519,16 +1637,25 @@
     });
 
     const viewport = $("canvasViewport");
+    const paperWrapper = $("paperWrapper");
+    let panRafId = null;
+
     viewport.addEventListener("wheel", (e) => {
       e.preventDefault();
       const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
       state.zoom = Math.min(Math.max(state.zoom * zoomFactor, 0.15), 3.5);
-      updateCanvasTransform();
+      if (!panRafId) {
+        panRafId = requestAnimationFrame(() => {
+          panRafId = null;
+          updateCanvasTransform();
+        });
+      }
     }, { passive: false });
 
     viewport.addEventListener("mousedown", (e) => {
       if (e.button === 0 || e.button === 1) { // Left or Middle click pan
         state.isPanning = true;
+        if (paperWrapper) paperWrapper.classList.add("is-panning");
         state.startPanX = e.clientX - state.panX;
         state.startPanY = e.clientY - state.panY;
       }
@@ -1537,11 +1664,19 @@
       if (state.isPanning) {
         state.panX = e.clientX - state.startPanX;
         state.panY = e.clientY - state.startPanY;
-        updateCanvasTransform();
+        if (!panRafId) {
+          panRafId = requestAnimationFrame(() => {
+            panRafId = null;
+            updateCanvasTransform();
+          });
+        }
       }
     });
     window.addEventListener("mouseup", () => {
-      state.isPanning = false;
+      if (state.isPanning) {
+        state.isPanning = false;
+        if (paperWrapper) paperWrapper.classList.remove("is-panning");
+      }
     });
 
     // Export & Print Actions
