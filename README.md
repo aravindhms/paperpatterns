@@ -7,6 +7,7 @@
 ![Zero Dependencies](https://img.shields.io/badge/Dependencies-0-success.svg)
 ![Offline First](https://img.shields.io/badge/Offline-100%25-brightgreen.svg)
 ![Generators](https://img.shields.io/badge/Patterns-91-orange.svg)
+[![Live Demo](https://img.shields.io/badge/Live_App-paperpatterns.vercel.app-000000?style=flat&logo=vercel)](https://paperpatterns.vercel.app/)
 
 ---
 
