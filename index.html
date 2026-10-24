@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PaperPatterns · Modern Vector Graph Paper & Grid Generator</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232563eb'/%3E%3Cpath d='M8 4v24M16 4v24M24 4v24M4 8h24M4 16h24M4 24h24' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Main Header -->
+    <header class="app-header">
+      <div class="brand" id="brandHome" title="Return to Home Overview">
+        <div class="brand-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/>
+          </svg>
+        </div>
+        <span class="brand-name">PaperPatterns</span>
+        <span class="brand-badge">v3.0</span>
+      </div>
+
+      <div class="header-center">
+        <div class="search-box">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input type="search" id="patternSearch" placeholder="Search 78+ grid patterns... (Press / to focus)">
+          <span class="search-shortcut">/</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Unit Selector -->
+        <div class="segmented-control" style="width: 120px;">
+          <button class="segmented-btn" data-unit="mm">mm</button>
+          <button class="segmented-btn" data-unit="cm">cm</button>
+          <button class="segmented-btn active" data-unit="inch">in</button>
+        </div>
+
+        <!-- Dark/Light Theme Toggle -->
+        <button class="btn btn-secondary btn-icon" id="themeToggleBtn" title="Toggle Light/Dark Theme">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+        </button>
+
+        <!-- Direct Print Button -->
+        <button class="btn btn-secondary" id="directPrintBtn" title="Direct Print">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Print
+        </button>
+      </div>
+    </header>
+
+    <!-- Category Pills Navigation -->
+    <nav class="category-nav" id="categoryNav">
+      <button class="cat-pill active" data-cat="all">All Patterns (91)</button>
+      <button class="cat-pill" data-cat="Project & Assignment Borders">🎓 Project & Assignment Borders</button>
+      <button class="cat-pill" data-cat="Writing & Bullet Journalling">Journaling & Dots</button>
+      <button class="cat-pill" data-cat="Plain Grids">Plain Grids</button>
+      <button class="cat-pill" data-cat="Patterns">Patterns & Tilings</button>
+      <button class="cat-pill" data-cat="Recording & Charting">Math & Charting</button>
+      <button class="cat-pill" data-cat="Classic Writing">Writing & Calligraphy</button>
+      <button class="cat-pill" data-cat="Specialty">Music & Specialty</button>
+      <button class="cat-pill" data-cat="Experimental">Games & RPGs</button>
+      <button class="cat-pill" data-cat="favorites">⭐ Starred</button>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      <!-- Left: Pattern Catalog Drawer -->
+      <aside class="pattern-drawer" id="patternDrawer">
+        <div class="drawer-header">
+          <span class="drawer-title" id="drawerCatalogTitle">Pattern Library (78)</span>
+          <button class="btn btn-secondary btn-sm" id="collapseDrawerBtn" title="Collapse Library">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+        </div>
+        <div class="pattern-grid" id="patternGrid">
+          <!-- Dynamic pattern cards populated via app.js -->
+        </div>
+      </aside>
+
+      <!-- Center: Document Canvas Viewport -->
+      <section class="canvas-viewport" id="canvasViewport">
+        <!-- Scale & Spec Badge -->
+        <div class="canvas-spec-badge" id="canvasSpecBadge">
+          <span id="specPageSize" class="highlight">A4</span>
+          <span>·</span>
+          <span id="specDimensions">210 × 297 mm</span>
+          <span>·</span>
+          <span>Spacing: <strong id="specSpacing" class="highlight">5 mm</strong></span>
+          <span>·</span>
+          <span id="specLineCount">120 lines</span>
+        </div>
+
+        <!-- Paper Simulation Sheet -->
+        <div class="paper-wrapper" id="paperWrapper">
+          <div class="paper-sheet" id="paperSheet">
+            <svg class="paper-svg" id="paperSvg" xmlns="http://www.w3.org/2000/svg">
+              <!-- SVG preview rendered here -->
+            </svg>
+          </div>
+        </div>
+
+        <!-- Floating HUD Toolbar -->
+        <div class="canvas-hud">
+          <button class="hud-btn" id="toggleDrawerHudBtn" title="Toggle Pattern Library">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <line x1="9" y1="3" x2="9" y2="21"/>
+            </svg>
+          </button>
+
+          <div class="hud-divider"></div>
+
+          <div class="hud-group">
+            <button class="hud-btn" id="zoomOutBtn" title="Zoom Out (-)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+            <span class="hud-info" id="zoomLevelDisplay">100%</span>
+            <button class="hud-btn" id="zoomInBtn" title="Zoom In (+)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="hud-divider"></div>
+
+          <button class="hud-btn" id="zoomFitBtn" title="Fit to Screen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Right: Inspector & Customization Panel -->
+      <aside class="inspector-panel" id="inspectorPanel">
+        <div class="inspector-header">
+          <div class="pattern-title-area">
+            <h2 class="active-pattern-title" id="inspectorPatternName">Plain Grid</h2>
+            <p class="active-pattern-blurb" id="inspectorPatternBlurb">Simple, elegant square grids.</p>
+          </div>
+
+          <!-- Quick Picks / Curated Presets -->
+          <div class="section-title">Quick Presets</div>
+          <div class="quick-picks-container" id="quickPicksList">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <div class="inspector-body">
+          <!-- 1. Page Geometry -->
+          <div class="section-group">
+            <div class="section-title">Page Layout</div>
+            
+            <div class="control-row">
+              <div class="control-label">Standard Size</div>
+              <select id="pageSizeSelect">
+                <option value="a4" selected>A4 (210 × 297 mm)</option>
+                <option value="a5">A5 (148 × 210 mm)</option>
+                <option value="a3">A3 (297 × 420 mm)</option>
+                <option value="letter">US Letter (8.5 × 11 in)</option>
+                <option value="legal">US Legal (8.5 × 14 in)</option>
+                <option value="tabloid">Tabloid / Ledger (11 × 17 in)</option>
+                <option value="executive">Executive (7.25 × 10.5 in)</option>
+                <option value="b5">B5 (182 × 257 mm)</option>
+                <option value="custom">Custom Dimensions...</option>
+              </select>
+            </div>
+
+            <!-- Custom Dimension Inputs (Hidden by default) -->
+            <div class="control-row" id="customDimRow" style="display: none;">
+              <div class="control-label">Custom Width × Height</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="number" id="customWidthInput" value="8.5" step="0.1" min="1" max="100">
+                <input type="number" id="customHeightInput" value="11" step="0.1" min="1" max="100">
+              </div>
+            </div>
+
+            <div class="control-row">
+              <div class="control-label">Orientation</div>
+              <div class="segmented-control">
+                <button class="segmented-btn active" id="orientPortraitBtn">Portrait</button>
+                <button class="segmented-btn" id="orientLandscapeBtn">Landscape</button>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <div class="control-label">
+                <span>Page Margins</span>
+                <span class="control-val-badge" id="marginDisplay">0.5 in</span>
+              </div>
+              <div class="segmented-control" style="margin-bottom: 6px;">
+                <button class="segmented-btn" data-margin="0">None</button>
+                <button class="segmented-btn" data-margin="0.25">Narrow</button>
+                <button class="segmented-btn active" data-margin="0.5">Normal</button>
+                <button class="segmented-btn" data-margin="1">Wide</button>
+              </div>
+              <div class="slider-container">
+                <input type="range" id="marginSlider" min="0" max="2" step="0.05" value="0.5">
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Grid & Geometry -->
+          <div class="section-group">
+            <div class="section-title">Grid Geometry</div>
+
+            <div class="control-row">
+              <div class="control-label">
+                <span id="spacingLabel">Grid Spacing</span>
+                <span class="control-val-badge" id="spacingDisplay">4 / in</span>
+              </div>
+              <div class="slider-container">
+                <input type="range" id="spacingSlider" min="0.1" max="20" step="0.1" value="4">
+                <input type="number" id="spacingNumber" value="4" step="0.1" style="width: 70px;">
+              </div>
+            </div>
+
+            <div class="control-row">
+              <div class="control-label">
+                <span>Line Weight</span>
+                <span class="control-val-badge" id="weightDisplay">0.5 pt</span>
+              </div>
+              <div class="slider-container">
+                <input type="range" id="weightSlider" min="0" max="200" step="1" value="45">
+                <input type="number" id="weightNumber" value="0.5" step="0.05" min="0.05" max="20" style="width: 70px;">
+              </div>
+            </div>
+
+            <!-- Dynamic Pattern Extras Placeholder -->
+            <div id="dynamicExtrasContainer" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Dynamically populated per pattern extras -->
+            </div>
+          </div>
+
+          <!-- 3. Page Border & Framing -->
+          <div class="section-group">
+            <div class="section-title">Page Border & Frame</div>
+
+            <div class="control-row">
+              <div class="control-label">Border Style</div>
+              <select id="borderStyleSelect">
+                <option value="none" selected>None (No Border)</option>
+                <optgroup label="Decorative & Artistic Frames">
+                  <option value="diploma_seal">Certificate & Diploma Rosette Seal Frame</option>
+                  <option value="greek_key">Classical Greek Key (Meander) Border</option>
+                  <option value="vintage_scroll">Victorian Botanical Scroll Frame</option>
+                  <option value="celtic_knot">Celtic Knotwork Interlace Frame</option>
+                  <option value="artdeco_luxury">Art Deco Grand Stepped Chevron Frame</option>
+                  <option value="islamic_geom">Arabesque 8-Point Star Geometric Frame</option>
+                  <option value="floral">Decorative Floral / Vine Corner Frame</option>
+                  <option value="artdeco">Beveled Art Deco Frame</option>
+                </optgroup>
+                <optgroup label="A4 Project & Assignment Frames">
+                  <option value="assignment_front">Assignment Front Page (Title & Details Block)</option>
+                  <option value="engineering_titleblock">Engineering Project Frame (ISO Title Block)</option>
+                  <option value="academic_double">Formal University Frame (Double-Fillet)</option>
+                  <option value="minimal_assignment">Modern Tech Assignment Frame (Header Bar)</option>
+                  <option value="modern_ribbon">Modern Architectural Presentation Frame</option>
+                </optgroup>
+                <optgroup label="Geometric & Drafting Borders">
+                  <option value="single">Single Line Border</option>
+                  <option value="double">Double Line (Drafting / Formal)</option>
+                  <option value="bold">Heavy Blueprint Frame</option>
+                  <option value="corners">Corner Marks (L-Brackets)</option>
+                  <option value="dashed">Dashed / Stitch Frame</option>
+                  <option value="looseleaf">Notebook Margin Rule (Red Line)</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div id="borderOptionsContainer" style="display: none; flex-direction: column; gap: 10px;">
+              <div class="control-row">
+                <div class="control-label">
+                  <span>Border Line Weight</span>
+                  <span class="control-val-badge" id="borderWeightDisplay">1.0 pt</span>
+                </div>
+                <div class="slider-container">
+                  <input type="range" id="borderWeightSlider" min="0.2" max="6" step="0.1" value="1">
+                  <input type="number" id="borderWeightNumber" value="1" step="0.1" min="0.2" max="10" style="width: 70px;">
+                </div>
+              </div>
+
+              <div class="control-row">
+                <div class="control-label">
+                  <span>Border Color</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                  <label class="switch-control" style="flex: 1;">
+                    <span class="switch-label">Match Grid Color</span>
+                    <input type="checkbox" id="borderMatchGridColor" checked>
+                    <div class="switch-track"><div class="switch-thumb"></div></div>
+                  </label>
+                  <input type="color" class="custom-color-input" id="borderColorPicker" value="#3a5fcd" style="display:none;" title="Custom Border Color">
+                </div>
+              </div>
+
+              <div class="control-row">
+                <div class="control-label">
+                  <span>Border Inset / Padding</span>
+                  <span class="control-val-badge" id="borderInsetDisplay">0 pt</span>
+                </div>
+                <div class="slider-container">
+                  <input type="range" id="borderInsetSlider" min="0" max="36" step="1" value="0">
+                </div>
+              </div>
+
+              <!-- Removable Frame Components (Contextual toggles) -->
+              <div id="borderSubOptionsContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--border-color-subtle);"></div>
+            </div>
+          </div>
+
+          <!-- 4. Colors & Theme -->
+          <div class="section-group">
+            <div class="section-title">Palette & Colors</div>
+
+            <div class="control-row">
+              <div class="control-label">Grid Line Color</div>
+              <div class="swatches-grid">
+                <button class="color-swatch-btn active" data-color="3a5fcd" style="background:#3a5fcd;" title="Graph Blue"></button>
+                <button class="color-swatch-btn" data-color="000000" style="background:#000000;" title="Charcoal Black"></button>
+                <button class="color-swatch-btn" data-color="b3b3b3" style="background:#b3b3b3;" title="Pencil Grey"></button>
+                <button class="color-swatch-btn" data-color="b3b3ff" style="background:#b3b3ff;" title="Light Cyan Blue"></button>
+                <button class="color-swatch-btn" data-color="b30000" style="background:#b30000;" title="Crimson"></button>
+                <button class="color-swatch-btn" data-color="008060" style="background:#008060;" title="Engineering Green"></button>
+                <input type="color" class="custom-color-input" id="gridColorPicker" value="#3a5fcd" title="Custom Line Color">
+              </div>
+            </div>
+
+            <div class="control-row">
+              <div class="control-label">Paper Sheet Color</div>
+              <div class="swatches-grid">
+                <button class="color-swatch-btn active" data-bgcolor="ffffff" style="background:#ffffff;" title="Clean White"></button>
+                <button class="color-swatch-btn" data-bgcolor="fffbf0" style="background:#fffbf0;" title="Warm Ivory"></button>
+                <button class="color-swatch-btn" data-bgcolor="f5efe6" style="background:#f5efe6;" title="Kraft Recycled"></button>
+                <button class="color-swatch-btn" data-bgcolor="0f172a" style="background:#0f172a;" title="Blueprint Slate"></button>
+                <button class="color-swatch-btn" data-bgcolor="1e1e1e" style="background:#1e1e1e;" title="Midnight Dark"></button>
+                <input type="color" class="custom-color-input" id="bgColorPicker" value="#ffffff" title="Custom Paper Color">
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Notebook & Header Options -->
+          <div class="section-group">
+            <div class="section-title">Notebook & Header Options</div>
+
+            <div class="control-row">
+              <label class="switch-control">
+                <span class="switch-label">Header Title Line</span>
+                <input type="checkbox" id="headerToggle">
+                <div class="switch-track"><div class="switch-thumb"></div></div>
+              </label>
+              <input type="text" id="headerTextInput" placeholder="e.g. Project Notes · Lab Log" style="display:none; margin-top:6px;">
+            </div>
+
+            <div class="control-row">
+              <label class="switch-control">
+                <span class="switch-label">Date Line (Date: _______)</span>
+                <input type="checkbox" id="dateToggle">
+                <div class="switch-track"><div class="switch-thumb"></div></div>
+              </label>
+            </div>
+
+            <div class="control-row">
+              <label class="switch-control">
+                <span class="switch-label">Page Numbering</span>
+                <input type="checkbox" id="pageNumToggle">
+                <div class="switch-track"><div class="switch-thumb"></div></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inspector Action Footer -->
+        <div class="inspector-footer">
+          <!-- Page Count Selection Area -->
+          <div class="page-count-picker">
+            <div class="page-count-header">
+              <span>Pages to Generate:</span>
+              <div class="page-stepper">
+                <button class="page-stepper-btn" id="pageStepMinus" title="Decrease page count" type="button">−</button>
+                <input type="number" class="page-stepper-input" id="pageStepperInput" min="1" max="200" value="1">
+                <button class="page-stepper-btn" id="pageStepPlus" title="Increase page count" type="button">+</button>
+              </div>
+            </div>
+            <div class="page-preset-pills">
+              <button class="page-pill active" data-pages="1" type="button">1 page</button>
+              <button class="page-pill" data-pages="2" type="button">2</button>
+              <button class="page-pill" data-pages="5" type="button">5</button>
+              <button class="page-pill" data-pages="10" type="button">10</button>
+              <button class="page-pill" data-pages="25" type="button">25</button>
+              <button class="page-pill" data-pages="50" type="button">50</button>
+            </div>
+          </div>
+
+          <button class="export-primary-btn" id="exportPdfBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <line x1="9" y1="15" x2="12" y2="18"/>
+              <line x1="15" y1="15" x2="12" y2="18"/>
+            </svg>
+            <span id="exportPdfBtnText">Download PDF (1 Page)</span>
+          </button>
+
+          <div class="export-secondary-row">
+            <button class="btn btn-secondary btn-sm" id="exportSvgBtn" title="Download Vector SVG">
+              SVG Vector
+            </button>
+            <button class="btn btn-secondary btn-sm" id="exportPngBtn" title="Download 300 DPI PNG">
+              PNG Image
+            </button>
+            <button class="btn btn-secondary btn-sm" id="copyLinkBtn" title="Copy Shareable Link">
+              Copy Link
+            </button>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Toast Notice Container -->
+    <div class="toast-notice" id="toastNotice">Copied to clipboard!</div>
+  </div>
+
+  <!-- Dedicated 1:1 True-Scale Print Container -->
+  <div id="printContainer" class="print-container" aria-hidden="true"></div>
+
+  <!-- Scripts -->
+  <script src="js/engine.js"></script>
+  <script src="js/patterns.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

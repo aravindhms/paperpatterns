@@ -1,0 +1,8 @@
+node_modules/
+screenshots/
+*.pdf
+verify_*.png
+test_*.png
+*.log
+.DS_Store
+Thumbs.db

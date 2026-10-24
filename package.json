@@ -1,0 +1,16 @@
+{
+  "name": "paperpatterns",
+  "version": "1.0.0",
+  "description": "> A modern, minimal, zero-dependency vector graph paper & grid generator.   > Re-architected and expanded from Kevin MacLeod's classic [Incompetech Graph Paper](https://incompetech.com/graphpaper/) (CC0 1.0 Public Domain).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "^1.64.1"
+  }
+}
